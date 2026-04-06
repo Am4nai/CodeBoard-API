@@ -2,14 +2,14 @@ import pool from "../config/db";
 import type { PostCreateInput, PostUpdateInput } from "../types/types";
 
 export const PostModel = {
-  async _syncTags(client: any, postId: number, tags: string[]) {
-    await client.query("DELETE FROM post_tags WHERE post_id = $1", [postId]);
+  async _syncTags(postId: number, tags: string[]) {
+    await pool.query("DELETE FROM post_tags WHERE post_id = $1", [postId]);
 
     if (!tags || tags.length === 0) return;
 
     const cleanTags = [...new Set(tags.map(t => t.toLowerCase().trim()).filter(Boolean))];
 
-    await client.query(
+    await pool.query(
       `
       INSERT INTO post_tags (post_id, tag_id)
       SELECT $1, t.id
@@ -23,34 +23,55 @@ export const PostModel = {
 
   async create(input: PostCreateInput) {
     const { authorId, title, code, languageId, description, about, tags } = input;
-    const client = await pool.connect();
 
-    try {
-      await client.query("BEGIN");
+    const result = await pool.query(
+      `
+      INSERT INTO posts (author_id, title, description, about, code, language_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+      `,
+      [authorId, title, description ?? null, about ?? null, code, languageId]
+    );
 
-      const result = await client.query(
-        `
-        INSERT INTO posts (author_id, title, description, about, code, language_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
-        `,
-        [authorId, title, description ?? null, about ?? null, code, languageId]
-      );
+    const postId = result.rows[0].id;
 
-      const postId = result.rows[0].id;
-
-      if (tags && tags.length > 0) {
-        await this._syncTags(client, postId, tags);
-      }
-
-      await client.query("COMMIT");
-      return this.getById(postId);
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
+    if (tags && tags.length > 0) {
+      await this._syncTags(postId, tags);
     }
+
+    return this.getById(postId);
+  },
+
+  async update(id: number, patch: PostUpdateInput) {
+    const { title, code, languageId, description, about, tags } = patch;
+
+    await pool.query(
+      `
+      UPDATE posts
+      SET
+        title       = COALESCE($1, title),
+        code        = COALESCE($2, code),
+        language_id = COALESCE($3, language_id),
+        description = COALESCE($4, description),
+        about       = COALESCE($5, about),
+        updated_at  = NOW()
+      WHERE id = $6
+      `,
+      [
+        title !== undefined ? title : null,
+        code !== undefined ? code : null,
+        languageId !== undefined ? languageId : null,
+        description !== undefined ? description : null,
+        about !== undefined ? about : null,
+        id
+      ]
+    );
+
+    if (tags !== undefined) {
+      await this._syncTags(id, tags);
+    }
+
+    return this.getById(id);
   },
 
   async getAll(limit: number, offset: number) {
@@ -87,7 +108,6 @@ export const PostModel = {
       `,
       [limit, offset]
     );
-
     return result.rows;
   },
 
@@ -129,11 +149,10 @@ export const PostModel = {
       `,
       [id]
     );
-
     return result.rows[0];
   },
 
-  async getByUserId(userId: number) {
+  async getByUserId(userId: string) {
     const result = await pool.query(
       `
       SELECT
@@ -150,11 +169,7 @@ export const PostModel = {
         p.likes_count AS like_count,
         p.created_at,
         p.updated_at,
-        (
-          SELECT COUNT(*)
-          FROM comments c
-          WHERE c.post_id = p.id
-        )::INT AS comment_count
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count
       FROM posts p
       JOIN users u ON u.id = p.author_id
       JOIN profiles pr ON pr.user_id = u.id
@@ -164,43 +179,7 @@ export const PostModel = {
       `,
       [userId]
     );
-
     return result.rows;
-  },
-
-  async update(id: number, patch: PostUpdateInput) {
-    const { title, code, languageId, description, about, tags } = patch;
-    const client = await pool.connect();
-
-    try {
-      await client.query("BEGIN");
-
-      await client.query(
-        `
-        UPDATE posts
-        SET
-          title       = COALESCE($1, title),
-          code        = COALESCE($2, code),
-          language_id = COALESCE($3, language_id),
-          description = COALESCE($4, description),
-          about       = COALESCE($5, about)
-        WHERE id = $6
-        `,
-        [title ?? null, code ?? null, languageId ?? null, description ?? null, about ?? null, id]
-      );
-
-      if (tags !== undefined) {
-        await this._syncTags(client, id, tags);
-      }
-
-      await client.query("COMMIT");
-      return this.getById(id);
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
-    }
   },
 
   async delete(id: number) {
@@ -242,25 +221,12 @@ export const PostModel = {
 
     const sql = `
       SELECT
-        p.id,
-        p.author_id,
-        u.username AS author_name,
-        pr.avatar_url AS author_avatar_url,
-        p.title,
-        p.description,
-        p.about,
-        p.code,
-        p.language_id,
-        l.name AS language_name,
-        p.likes_count AS like_count,
-        p.created_at,
-        p.updated_at,
+        p.id, p.author_id, u.username AS author_name, pr.avatar_url AS author_avatar_url,
+        p.title, p.description, p.about, p.code, p.language_id, l.name AS language_name,
+        p.likes_count AS like_count, p.created_at, p.updated_at,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count,
         COALESCE(
-          (SELECT json_agg(t.name)
-           FROM post_tags pt
-           JOIN tags t ON t.id = pt.tag_id
-           WHERE pt.post_id = p.id),
+          (SELECT json_agg(t.name) FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id),
           '[]'
         ) AS tags
       FROM posts p
