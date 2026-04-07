@@ -1,7 +1,7 @@
 import pool from "../config/db";
 
 export class PostLikeModel {
-  static async toggle(postId: number, userId: number): Promise<{ liked: boolean }> {
+  static async toggle(postId: number, userId: string): Promise<{ liked: boolean }> {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -36,7 +36,7 @@ export class PostLikeModel {
     }
   }
 
-  static async isLiked(postId: number, userId: number): Promise<boolean> {
+  static async isLiked(postId: number, userId: string): Promise<boolean> {
     const result = await pool.query(
       `SELECT 1 FROM post_likes WHERE post_id = $1 AND user_id = $2`,
       [postId, userId]

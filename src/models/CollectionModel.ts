@@ -1,7 +1,7 @@
 import pool from "../config/db";
 
 export class CollectionModel {
-  static async create(userId: number, name: string, description?: string) {
+  static async create(userId: string, name: string, description?: string) {
     const result = await pool.query(
       `
       INSERT INTO collections (user_id, name, description)
@@ -14,7 +14,7 @@ export class CollectionModel {
     return result.rows[0];
   }
 
-  static async getAllByUser(userId: number) {
+  static async getAllByUser(userId: string) {
     const result = await pool.query(
       `SELECT * FROM collections WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
@@ -23,7 +23,7 @@ export class CollectionModel {
     return result.rows;
   }
 
-  static async getByIdForUser(id: number, userId: number) {
+  static async getByIdForUser(id: number, userId: string) {
     const result = await pool.query(
       `SELECT * FROM collections WHERE id = $1 AND user_id = $2`,
       [id, userId]
@@ -31,7 +31,7 @@ export class CollectionModel {
     return result.rows[0];
   }
 
-  static async isOwner(collectionId: number, userId: number): Promise<boolean> {
+  static async isOwner(collectionId: number, userId: string): Promise<boolean> {
     const r = await pool.query(
       `SELECT 1 FROM collections WHERE id = $1 AND user_id = $2`,
       [collectionId, userId]
@@ -39,7 +39,7 @@ export class CollectionModel {
     return !!r.rowCount;
   }
 
-  static async update(id: number, userId: number, name: string, description?: string) {
+  static async update(id: number, userId: string, name: string, description?: string) {
     const result = await pool.query(
       `
       UPDATE collections
@@ -52,7 +52,7 @@ export class CollectionModel {
     return result.rows[0];
   }
 
-  static async delete(id: number, userId: number) {
+  static async delete(id: number, userId: string) {
     const result = await pool.query(
       `DELETE FROM collections WHERE id = $1 AND user_id = $2 RETURNING id`,
       [id, userId]
