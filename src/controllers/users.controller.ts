@@ -5,8 +5,8 @@ import type { Profile } from "../types/types";
 
 export const getUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
+    const id = req.params.id;
+    if (!id) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
@@ -55,8 +55,8 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
 };
 
 export const getUserPosts = async (req: Request, res: Response) => {
-  const userId = Number(req.params.id);
-  if (Number.isNaN(userId)) {
+  const userId = req.params.id;
+  if (!userId) {
     return res.status(400).json({ error: "Invalid user ID" });
   }
 
@@ -101,8 +101,8 @@ export const searchUsers = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   const client = await pool.connect();
   try {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
+    const id = req.params.id;
+    if (!id) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 

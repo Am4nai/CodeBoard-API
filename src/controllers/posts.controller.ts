@@ -155,6 +155,11 @@ export const updatePost = async (req: Request, res: Response, next: NextFunction
     }
 
     const updated = await PostModel.update(id, updateData);
+
+    if (!updated) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
     return res.json(updated);
   } catch (err) {
     next(err);

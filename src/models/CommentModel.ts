@@ -1,7 +1,7 @@
 import pool from "../config/db";
 
 export const CommentModel = {
-  async create(postId: number, authorId: number, content: string, parentId: number | null) {
+  async create(postId: number, authorId: string, content: string, parentId: number | null) {
     const result = await pool.query(
       `
       INSERT INTO comments (post_id, author_id, content, parent_id)
@@ -43,7 +43,7 @@ export const CommentModel = {
     return row ? parseInt(row.count, 10) : 0;
   },
 
-  async update(id: number, authorId: number, content: string) {
+  async update(id: number, authorId: string, content: string) {
     const result = await pool.query(
       `
       UPDATE comments
@@ -57,7 +57,7 @@ export const CommentModel = {
     return result.rows[0];
   },
 
-  async delete(id: number, authorId: number) {
+  async delete(id: number, authorId: string) {
     const result = await pool.query(
       `
       DELETE FROM comments
