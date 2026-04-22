@@ -89,6 +89,7 @@ export const PostModel = {
         p.language_id,
         l.name AS language_name,
         p.likes_count AS like_count,
+        p.views_count,
         p.created_at,
         p.updated_at,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count,
@@ -131,6 +132,7 @@ export const PostModel = {
         p.language_id,
         l.name AS language_name,
         p.likes_count AS like_count,
+        p.views_count,
         p.created_at,
         p.updated_at,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count,
@@ -167,6 +169,7 @@ export const PostModel = {
         p.language_id,
         l.name AS language_name,
         p.likes_count AS like_count,
+        p.views_count,
         p.created_at,
         p.updated_at,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count
@@ -223,7 +226,7 @@ export const PostModel = {
       SELECT
         p.id, p.author_id, u.username AS author_name, pr.avatar_url AS author_avatar_url,
         p.title, p.description, p.about, p.code, p.language_id, l.name AS language_name,
-        p.likes_count AS like_count, p.created_at, p.updated_at,
+        p.likes_count AS like_count, p.views_count, p.created_at, p.updated_at,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count,
         COALESCE(
           (SELECT json_agg(t.name) FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id),
@@ -241,5 +244,19 @@ export const PostModel = {
     params.push(limit, offset);
     const result = await pool.query(sql, params);
     return result.rows;
+  },
+
+  async addView(id: number) {
+    const result = await pool.query(
+      `
+      UPDATE posts
+      SET views_count = views_count + 1
+      WHERE id = $1
+      RETURNING views_count
+      `,
+      [id]
+    );
+
+    return result.rows[0];
   },
 };

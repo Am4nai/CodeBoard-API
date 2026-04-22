@@ -213,3 +213,27 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
     next(err);
   }
 };
+
+export const addView = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ error: "Invalid post id" });
+    }
+
+    const post = await PostModel.getById(id);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const updated = await PostModel.addView(id);
+
+    return res.json({
+      message: "View added",
+      views_count: updated.views_count,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
