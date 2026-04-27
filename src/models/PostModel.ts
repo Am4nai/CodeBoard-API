@@ -189,7 +189,7 @@ export const PostModel = {
     await pool.query("DELETE FROM posts WHERE id = $1", [id]);
   },
 
-  async search(textQuery: string, tags: string[], page: number, limit: number) {
+  async search(textQuery: string, tags: string[], page: number, limit: number, sort: "views" | "likes" | "newest") {
     const offset = (page - 1) * limit;
     const hasTags = tags.length > 0;
     const hasText = textQuery.length > 0;
@@ -222,6 +222,11 @@ export const PostModel = {
 
     const whereSQL = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
+    let orderBy = "p.created_at DESC"
+
+    if (sort === "views") orderBy = "p.views_count DESC, p.created_at DESC"
+    if (sort === "likes") orderBy = "p.likes_count DESC, p.created_at DESC"
+
     const sql = `
       SELECT
         p.id, p.author_id, u.username AS author_name, pr.avatar_url AS author_avatar_url,
@@ -237,7 +242,7 @@ export const PostModel = {
       JOIN profiles pr ON pr.user_id = u.id
       JOIN languages l ON l.id = p.language_id
       ${whereSQL}
-      ORDER BY p.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

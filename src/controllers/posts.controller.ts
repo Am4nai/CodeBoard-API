@@ -203,11 +203,15 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
     const tags = parts.filter((w) => w.startsWith("#")).map((w) => w.slice(1));
     const textQuery = parts.filter((w) => !w.startsWith("#")).join(" ").trim();
 
+    const sortRaw = String(req.query.sort ?? "newest");
+
+    const sort = sortRaw === "views" || sortRaw === "likes" || sortRaw === "newest" ? sortRaw : "newest";
+
     if (!textQuery && tags.length === 0) {
       return res.status(400).json({ error: "Search query is required" });
     }
 
-    const posts = await PostModel.search(textQuery, tags, page, limit);
+    const posts = await PostModel.search(textQuery, tags, page, limit, sort);
     return res.status(200).json({ posts });
   } catch (err) {
     next(err);
