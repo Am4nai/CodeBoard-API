@@ -10,6 +10,7 @@ import {
   deletePost,
   searchPosts,
   addView,
+  filterPosts,
 } from "../controllers/posts.controller";
 
 const router = Router();
@@ -17,6 +18,7 @@ const router = Router();
 router.get("/random", getRandomPosts);
 router.get("/count", getCount);
 router.get("/search", searchPosts);
+router.get("/filter", filterPosts)
 
 router.get("/", getPosts);
 router.post("/", authMiddleware, createPost);

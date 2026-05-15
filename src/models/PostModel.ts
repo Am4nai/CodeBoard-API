@@ -251,6 +251,39 @@ export const PostModel = {
     return result.rows;
   },
 
+  async filter(page: number, limit: number, sort: "views" | "likes" | "newest") {
+    const offset = (page - 1) * limit;
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    let orderBy = "p.created_at DESC"
+
+    if (sort === "views") orderBy = "p.views_count DESC, p.created_at DESC"
+    if (sort === "likes") orderBy = "p.likes_count DESC, p.created_at DESC"
+
+    const sql = `
+      SELECT
+        p.id, p.author_id, u.username AS author_name, pr.avatar_url AS author_avatar_url,
+        p.title, p.description, p.about, p.code, p.language_id, l.name AS language_name,
+        p.likes_count AS like_count, p.views_count, p.created_at, p.updated_at,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id)::INT AS comment_count,
+        COALESCE(
+          (SELECT json_agg(t.name) FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id),
+          '[]'
+        ) AS tags
+      FROM posts p
+      JOIN users u ON u.id = p.author_id
+      JOIN profiles pr ON pr.user_id = u.id
+      JOIN languages l ON l.id = p.language_id
+      ORDER BY ${orderBy}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    params.push(limit, offset);
+    const result = await pool.query(sql, params);
+    return result.rows;
+  },
+
   async addView(id: number) {
     const result = await pool.query(
       `

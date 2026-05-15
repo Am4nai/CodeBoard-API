@@ -24,7 +24,7 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 };
 
 export const getUserByIdAdmin = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid user id" });
 
   const result = await pool.query(
@@ -56,7 +56,7 @@ export const getUserByIdAdmin = async (req: Request, res: Response) => {
 export const updateUserByAdmin = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const id = Number(req.params.id);
+    const id = req.params.id;
     if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid user id" });
 
     const { username, email, role, avatar_url, description, about } = req.body;
@@ -126,7 +126,7 @@ export const updateUserByAdmin = async (req: Request, res: Response) => {
 };
 
 export const deleteUserByAdmin = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
+  const id = req.params.id;
   if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid user id" });
 
   const result = await pool.query(

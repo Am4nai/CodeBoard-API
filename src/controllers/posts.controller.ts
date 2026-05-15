@@ -218,6 +218,25 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+export const filterPosts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const pageRaw = Number(req.query.page);
+    const limitRaw = Number(req.query.limit);
+
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 15;
+
+    const sortRaw = String(req.query.sort ?? "newest");
+
+    const sort = sortRaw === "views" || sortRaw === "likes" || sortRaw === "newest" ? sortRaw : "newest";
+
+    const posts = await PostModel.filter(page, limit, sort);
+    return res.status(200).json({ posts });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const addView = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
