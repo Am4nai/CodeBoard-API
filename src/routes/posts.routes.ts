@@ -9,6 +9,7 @@ import {
   updatePost,
   deletePost,
   searchPosts,
+  addView,
 } from "../controllers/posts.controller";
 
 const router = Router();
@@ -23,5 +24,7 @@ router.post("/", authMiddleware, createPost);
 router.get("/:id", getPostById);
 router.put("/:id", authMiddleware, updatePost);
 router.delete("/:id", authMiddleware, deletePost);
+
+router.post("/:id/view", addView);
 
 export default router;
